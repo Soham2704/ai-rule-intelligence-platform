@@ -1,0 +1,5 @@
+{
+  "buildpacks": [
+    "https://github.com/renderinc/heroku-buildpack-python"
+  ]
+}

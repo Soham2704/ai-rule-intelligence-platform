@@ -1,0 +1,101 @@
+{
+  "Mumbai": {
+    "base_reward": 1.3461538461538463,
+    "action_weights": [
+      1.771561000000001,
+      1.3045131000000008,
+      1.0
+    ],
+    "positive_feedback_count": 11,
+    "negative_feedback_count": 2,
+    "total_cases": 13
+  },
+  "Pune": {
+    "base_reward": 0.9,
+    "action_weights": [
+      0.8820900000000003,
+      1.0,
+      1.0
+    ],
+    "positive_feedback_count": 2,
+    "negative_feedback_count": 3,
+    "total_cases": 5
+  },
+  "Ahmedabad": {
+    "base_reward": 1.0,
+    "action_weights": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "positive_feedback_count": 0,
+    "negative_feedback_count": 0,
+    "total_cases": 0
+  },
+  "Nashik": {
+    "base_reward": 1.0,
+    "action_weights": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "positive_feedback_count": 0,
+    "negative_feedback_count": 0,
+    "total_cases": 0
+  },
+  "Delhi": {
+    "base_reward": 1.0,
+    "action_weights": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "positive_feedback_count": 0,
+    "negative_feedback_count": 0,
+    "total_cases": 0
+  },
+  "Bangalore": {
+    "base_reward": 1.0,
+    "action_weights": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "positive_feedback_count": 0,
+    "negative_feedback_count": 0,
+    "total_cases": 0
+  },
+  "null": {
+    "base_reward": 1.5,
+    "action_weights": [
+      1.0,
+      1.1,
+      1.0
+    ],
+    "positive_feedback_count": 1,
+    "negative_feedback_count": 0,
+    "total_cases": 1
+  },
+  "unknown": {
+    "base_reward": 1.2037037037037037,
+    "action_weights": [
+      0.81,
+      1.9487171000000014,
+      1.6678895149529864
+    ],
+    "positive_feedback_count": 19,
+    "negative_feedback_count": 8,
+    "total_cases": 27
+  },
+  "null": {
+    "base_reward": 1.5,
+    "action_weights": [
+      1.0,
+      1.1,
+      1.0
+    ],
+    "positive_feedback_count": 1,
+    "negative_feedback_count": 0,
+    "total_cases": 1
+  }
+}

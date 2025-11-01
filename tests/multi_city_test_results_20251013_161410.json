@@ -1,0 +1,269 @@
+{
+  "timestamp": "2025-10-13T10:42:48.670449Z",
+  "tests_passed": 6,
+  "tests_failed": 0,
+  "city_results": {
+    "Mumbai": [
+      {
+        "city": "Mumbai",
+        "case_id": "mumbai_test_001",
+        "status": "PASSED",
+        "checks": {
+          "has_project_id": true,
+          "has_case_id": true,
+          "has_rules_applied": true,
+          "has_reasoning": true,
+          "has_confidence_score": true,
+          "has_confidence_level": true,
+          "valid_confidence": true,
+          "stored_in_mcp": true,
+          "geometry_generated": true,
+          "bridge_api_reasoning": true
+        },
+        "errors": [],
+        "report": {
+          "project_id": "test_mumbai_urban_01",
+          "case_id": "mumbai_test_001",
+          "rules_applied": [
+            "MUM-FSI-SUBURBS-R18-27",
+            "MUM-LOS-1001-2500"
+          ],
+          "reasoning": "For a 1500 sqm urban plot on an 18m road, Clause MUM-FSI-SUBURBS-R18-27 permits a total FSI of 2.4, allowing 3600 sqm of buildable area. Clause MUM-LOS-1001-2500 also mandates a 15% LOS reservation, requiring 225 sqm of open space.\n\n[Total rules applied: 2]",
+          "clause_summaries": [
+            {
+              "clause_id": "MUM-FSI-SUBURBS-R18-27",
+              "authority": "",
+              "clause_no": "",
+              "entitlements": {},
+              "conditions": {},
+              "notes": "FSI for urban/suburban areas on 18m-27m roads.",
+              "quick_summary": "See entitlements"
+            },
+            {
+              "clause_id": "MUM-LOS-1001-2500",
+              "authority": "",
+              "clause_no": "",
+              "entitlements": {},
+              "conditions": {},
+              "notes": "LOS for plots between 1001 and 2500 sq.m.",
+              "quick_summary": "See entitlements"
+            }
+          ],
+          "confidence_score": 0.9,
+          "confidence_level": "High",
+          "confidence_note": "The RL agent is highly confident in this recommendation.",
+          "basic_reasoning": "For a plot in an urban area on an 18m road, Clause MUM-FSI-SUBURBS-R18-27 allows a total FSI of 2.4; additionally, for a 1500 sqm plot, Clause MUM-LOS-1001-2500 mandates a Layout Open Space (LOS) of 15%."
+        },
+        "mcp_confidence": 0.9,
+        "geometry_size_kb": 0.66796875
+      },
+      {
+        "city": "Mumbai",
+        "case_id": "mumbai_test_002",
+        "status": "PASSED",
+        "checks": {
+          "has_project_id": true,
+          "has_case_id": true,
+          "has_rules_applied": true,
+          "has_reasoning": true,
+          "has_confidence_score": true,
+          "has_confidence_level": true,
+          "valid_confidence": true,
+          "stored_in_mcp": true,
+          "geometry_generated": true,
+          "bridge_api_reasoning": true
+        },
+        "errors": [],
+        "report": {
+          "project_id": "test_mumbai_suburban_01",
+          "case_id": "mumbai_test_002",
+          "rules_applied": [
+            "MUM-FSI-SUBURBS-R18-27"
+          ],
+          "reasoning": "For an 800 sqm suburban plot on a 12m road, the provided rule is not applicable. Clause MUM-FSI-SUBURBS-R18-27 requires a minimum road width of 18m to grant the total FSI of 2.4.\n\n[Total rules applied: 1]",
+          "clause_summaries": [
+            {
+              "clause_id": "MUM-FSI-SUBURBS-R18-27",
+              "authority": "",
+              "clause_no": "",
+              "entitlements": {},
+              "conditions": {},
+              "notes": "FSI for urban/suburban areas on 18m-27m roads.",
+              "quick_summary": "See entitlements"
+            }
+          ],
+          "confidence_score": 0.72,
+          "confidence_level": "Moderate",
+          "confidence_note": "The RL agent has moderate confidence. Review recommended.",
+          "basic_reasoning": "Rule MUM-FSI-SUBURBS-R18-27 for suburban locations specifies a total FSI of 2.4, but it requires a road width between 18m and 27m, and the user's 12m road does not meet this condition."
+        },
+        "mcp_confidence": 0.72,
+        "geometry_size_kb": 0.66796875
+      }
+    ],
+    "Pune": [
+      {
+        "city": "Pune",
+        "case_id": "pune_test_001",
+        "status": "PASSED",
+        "checks": {
+          "has_project_id": true,
+          "has_case_id": true,
+          "has_rules_applied": true,
+          "has_reasoning": true,
+          "has_confidence_score": true,
+          "has_confidence_level": true,
+          "valid_confidence": true,
+          "stored_in_mcp": true,
+          "geometry_generated": true,
+          "bridge_api_reasoning": true
+        },
+        "errors": [],
+        "report": {
+          "project_id": "test_pune_urban_01",
+          "case_id": "pune_test_001",
+          "rules_applied": [
+            "PUN-SET-007",
+            "PUN-SET-008"
+          ],
+          "reasoning": "For a 2000 sqm plot on a 20m road, the required front setback is 4.5m for residential use (PUN-SET-007) or 6.0m for mixed-use (PUN-SET-008). Both rules mandate minimum 3.0m side and rear margins.\n\n[Total rules applied: 2]",
+          "clause_summaries": [
+            {
+              "clause_id": "PUN-SET-007",
+              "authority": "",
+              "clause_no": "",
+              "entitlements": {},
+              "conditions": {},
+              "notes": "Setbacks for residential buildings (<=15m height) in non-congested areas on roads 18m to <24m wide, for plots >= 250 sqm.",
+              "quick_summary": "See entitlements"
+            },
+            {
+              "clause_id": "PUN-SET-008",
+              "authority": "",
+              "clause_no": "",
+              "entitlements": {},
+              "conditions": {},
+              "notes": "Setbacks for mixed-use residential buildings (<=15m height) in non-congested areas on roads 18m to <24m wide, for plots >= 250 sqm.",
+              "quick_summary": "See entitlements"
+            }
+          ],
+          "confidence_score": 0.908,
+          "confidence_level": "High",
+          "confidence_note": "The RL agent is highly confident in this recommendation.",
+          "basic_reasoning": "For a 2000 sqm plot on a 20m road, Rule PUN-SET-007 specifies minimum setbacks of 4.5m (front), 3.0m (side), and 3.0m (rear) for a residential building, while Rule PUN-SET-008 requires a 6.0m front setback with 3.0m side and rear setbacks for a mixed-use residential building."
+        },
+        "mcp_confidence": 0.908,
+        "geometry_size_kb": 0.66796875
+      },
+      {
+        "city": "Pune",
+        "case_id": "pune_test_002",
+        "status": "PASSED",
+        "checks": {
+          "has_project_id": true,
+          "has_case_id": true,
+          "has_rules_applied": true,
+          "has_reasoning": true,
+          "has_confidence_score": true,
+          "has_confidence_level": true,
+          "valid_confidence": true,
+          "stored_in_mcp": true,
+          "geometry_generated": true,
+          "bridge_api_reasoning": true
+        },
+        "errors": [],
+        "report": {
+          "project_id": "test_pune_mixed_01",
+          "case_id": "pune_test_002",
+          "rules_applied": [],
+          "reasoning": "No specific compliance rules found for 1200 sqm suburban plot on 15m road. Please verify parameters or consult local development control regulations.",
+          "clause_summaries": [],
+          "confidence_score": 0.954,
+          "confidence_level": "High",
+          "confidence_note": "The RL agent is highly confident in this recommendation.",
+          "basic_reasoning": "No specific rules were found in the database for the given parameters."
+        },
+        "mcp_confidence": 0.954,
+        "geometry_size_kb": 0.66796875
+      }
+    ],
+    "Ahmedabad": [
+      {
+        "city": "Ahmedabad",
+        "case_id": "ahmedabad_test_001",
+        "status": "PASSED",
+        "checks": {
+          "has_project_id": true,
+          "has_case_id": true,
+          "has_rules_applied": true,
+          "has_reasoning": true,
+          "has_confidence_score": true,
+          "has_confidence_level": true,
+          "valid_confidence": true,
+          "stored_in_mcp": true,
+          "geometry_generated": true,
+          "bridge_api_reasoning": true
+        },
+        "errors": [],
+        "report": {
+          "project_id": "test_ahmedabad_urban_01",
+          "case_id": "ahmedabad_test_001",
+          "rules_applied": [
+            "AHM-HEIGHT-001"
+          ],
+          "reasoning": "For the 1800 sqm plot on a 16m road, Clause AHM-HEIGHT-001 is the governing regulation. This rule permits a maximum building height of 25.0 meters.\n\n[Total rules applied: 1]",
+          "clause_summaries": [
+            {
+              "clause_id": "AHM-HEIGHT-001",
+              "authority": "",
+              "clause_no": "",
+              "entitlements": {},
+              "conditions": {},
+              "notes": "Max height for plots on 12m-18m roads.",
+              "quick_summary": "See entitlements"
+            }
+          ],
+          "confidence_score": 0.912,
+          "confidence_level": "High",
+          "confidence_note": "The RL agent is highly confident in this recommendation.",
+          "basic_reasoning": "For a plot on a 16m road, Clause AHM-HEIGHT-001 permits a maximum building height of 25.0m as the road width falls within the specified 12m-18m range."
+        },
+        "mcp_confidence": 0.912,
+        "geometry_size_kb": 0.66796875
+      }
+    ],
+    "Nashik": [
+      {
+        "city": "Nashik",
+        "case_id": "nashik_test_001",
+        "status": "PASSED",
+        "checks": {
+          "has_project_id": true,
+          "has_case_id": true,
+          "has_rules_applied": true,
+          "has_reasoning": true,
+          "has_confidence_score": true,
+          "has_confidence_level": true,
+          "valid_confidence": true,
+          "stored_in_mcp": true,
+          "geometry_generated": true,
+          "bridge_api_reasoning": true
+        },
+        "errors": [],
+        "report": {
+          "project_id": "test_nashik_urban_01",
+          "case_id": "nashik_test_001",
+          "rules_applied": [],
+          "reasoning": "No specific compliance rules found for 1000 sqm urban plot on 14m road. Please verify parameters or consult local development control regulations.",
+          "clause_summaries": [],
+          "confidence_score": 0.714,
+          "confidence_level": "Moderate",
+          "confidence_note": "The RL agent has moderate confidence. Review recommended.",
+          "basic_reasoning": "No specific rules were found in the database for the given parameters."
+        },
+        "mcp_confidence": 0.714,
+        "geometry_size_kb": 0.66796875
+      }
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+# QUICK START - Push to New GitHub Repository
+# Copy and paste these commands one by one
+
+# ========================================
+# STEP 1: Disconnect from old repository
+# ========================================
+
+git remote remove origin
+
+# Verify removal (should show nothing)
+git remote -v
+
+# ========================================
+# STEP 2: Create new repository on GitHub
+# ========================================
+# 1. Go to: https://github.com/new
+# 2. Repository name: ai-rule-intelligence-platform
+# 3. Description: AI-powered building compliance system with multi-city support
+# 4. Choose Public or Private
+# 5. DO NOT initialize with README or .gitignore
+# 6. Click "Create repository"
+
+# ========================================
+# STEP 3: Link to your NEW repository
+# ========================================
+# Replace YOUR_USERNAME with your GitHub username
+# Replace REPO_NAME with your repository name (e.g., ai-rule-intelligence-platform)
+
+git remote add origin https://github.com/YOUR_USERNAME/REPO_NAME.git
+
+# Example:
+# git remote add origin https://github.com/Soham2704/ai-rule-intelligence-platform.git
+
+# Verify new remote
+git remote -v
+
+# ========================================
+# STEP 4: Push to new repository
+# ========================================
+
+git push -u origin main
+
+# Done! Your code is now in the NEW repository!

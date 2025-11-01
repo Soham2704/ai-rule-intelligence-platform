@@ -1,0 +1,106 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+mcp_database.db
+
+# Logs
+*.log
+logs/
+*.jsonl
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Models and trained agents
+*.zip
+rl_env/ppo_*.zip
+rl_env/rl_env/
+
+# Vector stores (large files)
+rules_kb/faiss_index*/
+*.index
+*.pkl
+
+# Output files (generated during runtime)
+outputs/
+io/
+reports/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+temp/
+tmp/
+
+# OS specific
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Large PDF files (optional - uncomment if you want to exclude PDFs)
+# *.pdf
+
+# API keys and secrets
+*_secret.json
+credentials.json
+
+# Test results
+test_results/
+*.xml
+
+# STL geometry files (can be large)
+*.stl
+
+# Node modules (if any frontend integration)
+node_modules/
+package-lock.json
