@@ -20,34 +20,64 @@ class MCPClient:
         """
         all_matching_rules = []
         
-        # Query for rules matching road width
-        if "road_width" in parameters:
-            width = parameters["road_width"]
-            width_rules = self.db.query(Rule).filter(
-                Rule.city.ilike(city),
-                Rule.conditions['road_width_m']['min'].as_float() <= width,
-                Rule.conditions['road_width_m']['max'].as_float() > width
-            ).all()
-            all_matching_rules.extend(width_rules)
-
-        # Query for rules matching plot size
-        if "plot_size" in parameters:
-            area = parameters["plot_size"]
-            area_rules = self.db.query(Rule).filter(
-                Rule.city.ilike(city),
-                Rule.conditions['plot_area_sqm']['min'].as_float() <= area,
-                Rule.conditions['plot_area_sqm']['max'].as_float() >= area
-            ).all()
-            all_matching_rules.extend(area_rules)
+        # Get all rules for the city first
+        city_rules = self.db.query(Rule).filter(Rule.city.ilike(city)).all()
+        
+        # Filter rules based on parameters
+        for rule in city_rules:
+            conditions = rule.conditions
+            matches = True
             
-        # Query for rules matching location
-        if "location" in parameters:
-            loc = parameters["location"]
-            loc_rules = self.db.query(Rule).filter(
-                Rule.city.ilike(city),
-                Rule.conditions['location'].as_string().contains(f'"{loc}"')
-            ).all()
-            all_matching_rules.extend(loc_rules)
+            # Check road width
+            if "road_width" in parameters and "road_width_m" in conditions:
+                road_cond = conditions["road_width_m"]
+                road_width = parameters["road_width"]
+                
+                # Handle different condition formats
+                if isinstance(road_cond, dict):
+                    min_width = road_cond.get("min", 0)
+                    max_width = road_cond.get("max", float('inf'))
+                    
+                    if not (min_width <= road_width <= max_width):
+                        matches = False
+                elif isinstance(road_cond, (int, float)):
+                    # Simple equality check
+                    if road_cond != road_width:
+                        matches = False
+            
+            # Check plot size
+            if "plot_size" in parameters and "plot_area_sqm" in conditions:
+                plot_cond = conditions["plot_area_sqm"]
+                plot_size = parameters["plot_size"]
+                
+                # Handle different condition formats
+                if isinstance(plot_cond, dict):
+                    min_area = plot_cond.get("min", 0)
+                    max_area = plot_cond.get("max", float('inf'))
+                    
+                    if not (min_area <= plot_size <= max_area):
+                        matches = False
+                elif isinstance(plot_cond, (int, float)):
+                    # Simple equality check
+                    if plot_cond != plot_size:
+                        matches = False
+            
+            # Check location
+            if "location" in parameters and "location" in conditions:
+                location_cond = conditions["location"]
+                location = parameters["location"]
+                
+                # Handle different condition formats
+                if isinstance(location_cond, list):
+                    if location not in location_cond:
+                        matches = False
+                elif isinstance(location_cond, str):
+                    if location != location_cond:
+                        matches = False
+            
+            # If all conditions match, add the rule
+            if matches:
+                all_matching_rules.append(rule)
 
         # De-duplicate the final list to ensure each rule is returned only once
         return list({rule.id: rule for rule in all_matching_rules}.values())
@@ -73,10 +103,16 @@ class MCPClient:
         """Saves or updates a reference to a generated geometry file in the DB."""
         existing = self.db.query(GeometryOutput).filter(GeometryOutput.case_id == geometry_data.get("case_id")).first()
         if existing:
-            existing.stl_path = geometry_data.get("stl_path")
-            existing.timestamp = datetime.utcnow().isoformat() + "Z"
+            setattr(existing, 'stl_path', geometry_data.get("stl_path", existing.stl_path))
+            setattr(existing, 'timestamp', datetime.utcnow().isoformat() + "Z")
         else:
-            new_geometry = GeometryOutput(id=str(uuid.uuid4()), **geometry_data)
+            new_geometry = GeometryOutput(
+                id=str(uuid.uuid4()),
+                case_id=geometry_data.get("case_id"),
+                project_id=geometry_data.get("project_id"),
+                stl_path=geometry_data.get("stl_path"),
+                timestamp=datetime.utcnow().isoformat() + "Z"
+            )
             self.db.add(new_geometry)
         self.db.commit()
 
@@ -84,13 +120,13 @@ class MCPClient:
         """Saves or updates the final AI reasoning report in the DB with enhanced fields."""
         existing = self.db.query(ReasoningOutput).filter(ReasoningOutput.case_id == report_data.get("case_id")).first()
         if existing:
-            existing.rules_applied = report_data.get("rules_applied")
-            existing.reasoning_summary = report_data.get("reasoning")
-            existing.clause_summaries = report_data.get("clause_summaries", [])
-            existing.confidence_score = report_data.get("confidence_score")
-            existing.confidence_level = report_data.get("confidence_level", "Unknown")
-            existing.confidence_note = report_data.get("confidence_note", "")
-            existing.timestamp = datetime.utcnow().isoformat() + "Z"
+            setattr(existing, 'rules_applied', report_data.get("rules_applied", existing.rules_applied))
+            setattr(existing, 'reasoning_summary', report_data.get("reasoning", existing.reasoning_summary))
+            setattr(existing, 'clause_summaries', report_data.get("clause_summaries", existing.clause_summaries))
+            setattr(existing, 'confidence_score', report_data.get("confidence_score", existing.confidence_score))
+            setattr(existing, 'confidence_level', report_data.get("confidence_level", existing.confidence_level))
+            setattr(existing, 'confidence_note', report_data.get("confidence_note", existing.confidence_note))
+            setattr(existing, 'timestamp', datetime.utcnow().isoformat() + "Z")
         else:
             new_reasoning = ReasoningOutput(
                 id=str(uuid.uuid4()),
@@ -116,4 +152,3 @@ class MCPClient:
         if self.db:
             self.db.close()
             print("MCPClient session closed.")
-
