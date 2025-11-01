@@ -14,6 +14,13 @@ def initialize_database():
     """Initialize the database with required tables and data."""
     print("Initializing database...")
     try:
+        # Print current working directory
+        print(f"Current working directory: {os.getcwd()}")
+        
+        # Print database path
+        from database_setup import DB_PATH
+        print(f"Database path: {DB_PATH}")
+        
         from database_setup import create_database
         create_database()
         print("Database initialized successfully.")
@@ -29,6 +36,18 @@ def initialize_database():
         db = SessionLocal()
         total_rules = db.query(Rule).filter(Rule.city == "Mumbai").count()
         print(f"Verified {total_rules} Mumbai rules in database")
+        
+        # Print some sample rules for debugging
+        if total_rules > 0:
+            sample_rules = db.query(Rule).filter(Rule.city == "Mumbai").limit(3).all()
+            print("Sample rules:")
+            for rule in sample_rules:
+                print(f"  - {rule.id}: {rule.rule_type}")
+                print(f"    Conditions: {rule.conditions}")
+                print(f"    Entitlements: {rule.entitlements}")
+        else:
+            print("No Mumbai rules found in database!")
+            
         db.close()
         
     except Exception as e:

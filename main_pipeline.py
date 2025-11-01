@@ -27,12 +27,18 @@ def process_case_logic(case_data, system_state):
     city = case_data.get("city")
     parameters = case_data.get("parameters", {})
     logger.info(f"Processing case {case_id} for project {project_id}.")
+    print(f"DEBUG: Processing case {case_id} for project {project_id}")
+    print(f"DEBUG: City: {city}, Parameters: {parameters}")
     
     # --- B. Query MCP for Hard Facts ---
     logger.info(f"Querying MCP for rules for case {case_id}...")
+    print(f"DEBUG: Querying MCP for rules for case {case_id}...")
     matching_rules = system_state.mcp_client.query_rules(city, parameters)
+    print(f"DEBUG: MCP returned {len(matching_rules)} rules")
+    
     deterministic_entitlements = [{"id": rule.id, "notes": rule.notes, **rule.entitlements} for rule in matching_rules] if matching_rules else []
     logger.info(f"MCP returned {len(matching_rules)} rules for {case_id}.")
+    print(f"DEBUG: Deterministic entitlements: {len(deterministic_entitlements)}")
 
     # --- C. AI Reasoning Layer (Enhanced with Explainer) ---
     # Use the new ExplainerAgent for detailed, clause-level reasoning
@@ -45,7 +51,8 @@ def process_case_logic(case_data, system_state):
         applicable_rules=deterministic_entitlements
     )
     logger.info(f"Reasoning summary generated for {case_id}.")
-    
+    print(f"DEBUG: Basic reasoning generated")
+
     # --- D. Run RL Agent for Confidence Score ---
     # Check if RL agent is available
     if system_state.rl_agent is not None:
@@ -61,9 +68,11 @@ def process_case_logic(case_data, system_state):
         action_probabilities = distribution.distribution.probs.detach().cpu().numpy()[0]
         base_confidence_score = float(action_probabilities[rl_optimal_action])
         logger.info(f"Base RL confidence for {case_id}: {base_confidence_score:.3f}")
+        print(f"DEBUG: Base RL confidence: {base_confidence_score:.3f}")
     else:
         # If RL agent is not available, use a default confidence score
         logger.warning("RL agent not available, using default confidence score")
+        print("DEBUG: RL agent not available, using default confidence score")
         base_confidence_score = 0.75  # Default confidence score
         rl_optimal_action = 0
     
@@ -81,8 +90,10 @@ def process_case_logic(case_data, system_state):
         logger.info(f"Confidence adjustment: {confidence_explanation}")
         
         confidence_score = adjusted_confidence
+        print(f"DEBUG: Adjusted confidence: {confidence_score:.3f}")
     except Exception as e:
         logger.warning(f"Could not apply adaptive confidence adjustment: {e}")
+        print(f"DEBUG: Could not apply adaptive confidence adjustment: {e}")
         confidence_score = base_confidence_score
         confidence_explanation = "Base RL confidence (no city-specific adjustment available)"
     
@@ -92,6 +103,7 @@ def process_case_logic(case_data, system_state):
         applicable_rules=deterministic_entitlements,
         confidence_score=confidence_score
     )
+    print(f"DEBUG: Enhanced reasoning generated")
     
     # --- F. Compile the NEW, Standardized Final Report with Enhanced Reasoning ---
     final_report = { 
@@ -107,6 +119,8 @@ def process_case_logic(case_data, system_state):
         "confidence_note": enhanced_reasoning["confidence_note"],  # Human-readable confidence interpretation
         "basic_reasoning": basic_reasoning  # Keep for backward compatibility
     }
+    
+    print(f"DEBUG: Final report compiled with {len(final_report['rules_applied'])} rules applied")
     
     # --- G. Run Final Agents & Save All Outputs (for handover) ---
     output_dir = f"outputs/projects/{project_id}"
@@ -139,5 +153,6 @@ def process_case_logic(case_data, system_state):
     })
     
     logger.info(f"PIPELINE_COMPLETE for case: {case_id}", extra={'extra_data': {'final_report': final_report}})
+    print(f"DEBUG: Pipeline complete for case: {case_id}")
     
     return final_report

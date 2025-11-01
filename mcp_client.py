@@ -18,15 +18,20 @@ class MCPClient:
         Finds all rules that match the given case parameters by aggregating results
         from multiple, independent queries.
         """
-        all_matching_rules = []
+        print(f"Querying rules for city: {city} with parameters: {parameters}")
         
         # Get all rules for the city first
         city_rules = self.db.query(Rule).filter(Rule.city.ilike(city)).all()
+        print(f"Found {len(city_rules)} total rules for city: {city}")
+        
+        all_matching_rules = []
         
         # Filter rules based on parameters
         for rule in city_rules:
             conditions = rule.conditions
             matches = True
+            
+            print(f"Checking rule {rule.id} with conditions: {conditions}")
             
             # Check road width
             if "road_width" in parameters and "road_width_m" in conditions:
@@ -40,10 +45,12 @@ class MCPClient:
                     
                     if not (min_width <= road_width <= max_width):
                         matches = False
+                        print(f"  Road width {road_width} not in range [{min_width}, {max_width}]")
                 elif isinstance(road_cond, (int, float)):
                     # Simple equality check
                     if road_cond != road_width:
                         matches = False
+                        print(f"  Road width {road_width} != {road_cond}")
             
             # Check plot size
             if "plot_size" in parameters and "plot_area_sqm" in conditions:
@@ -57,10 +64,12 @@ class MCPClient:
                     
                     if not (min_area <= plot_size <= max_area):
                         matches = False
+                        print(f"  Plot size {plot_size} not in range [{min_area}, {max_area}]")
                 elif isinstance(plot_cond, (int, float)):
                     # Simple equality check
                     if plot_cond != plot_size:
                         matches = False
+                        print(f"  Plot size {plot_size} != {plot_cond}")
             
             # Check location
             if "location" in parameters and "location" in conditions:
@@ -71,16 +80,23 @@ class MCPClient:
                 if isinstance(location_cond, list):
                     if location not in location_cond:
                         matches = False
+                        print(f"  Location {location} not in {location_cond}")
                 elif isinstance(location_cond, str):
                     if location != location_cond:
                         matches = False
+                        print(f"  Location {location} != {location_cond}")
             
             # If all conditions match, add the rule
             if matches:
+                print(f"  Rule {rule.id} matches!")
                 all_matching_rules.append(rule)
+            else:
+                print(f"  Rule {rule.id} does not match")
 
         # De-duplicate the final list to ensure each rule is returned only once
-        return list({rule.id: rule for rule in all_matching_rules}.values())
+        deduplicated = list({rule.id: rule for rule in all_matching_rules}.values())
+        print(f"Returning {len(deduplicated)} matching rules: {[r.id for r in deduplicated]}")
+        return deduplicated
 
     def add_feedback(self, feedback_data: Dict[str, Any]):
         """Saves a user feedback record directly to the 'feedback' table in the MCP."""
