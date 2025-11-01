@@ -2,5 +2,5 @@ services:
   - type: web
     name: ai-rule-intelligence-platform
     env: python
-    buildCommand: "pip install --upgrade pip && pip install setuptools==68.2.2 wheel==0.41.2 && pip install --only-binary=:all: -r requirements.txt && python database_setup.py && python populate_comprehensive_rules.py"
+    buildCommand: "chmod +x build.sh && ./build.sh"
     startCommand: "python start_server_full.py"

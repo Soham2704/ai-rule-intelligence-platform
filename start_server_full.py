@@ -23,6 +23,14 @@ def initialize_database():
         from populate_comprehensive_rules import populate_comprehensive_rules
         populate_comprehensive_rules()
         print("Mumbai rules populated successfully.")
+        
+        # Verify rules were added
+        from database_setup import SessionLocal, Rule
+        db = SessionLocal()
+        total_rules = db.query(Rule).filter(Rule.city == "Mumbai").count()
+        print(f"Verified {total_rules} Mumbai rules in database")
+        db.close()
+        
     except Exception as e:
         print(f"Warning: Database initialization failed: {e}")
         import traceback
