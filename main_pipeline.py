@@ -47,18 +47,25 @@ def process_case_logic(case_data, system_state):
     logger.info(f"Reasoning summary generated for {case_id}.")
     
     # --- D. Run RL Agent for Confidence Score ---
-    location_map = {"urban": 0, "suburban": 1, "rural": 2}
-    rl_state_np = np.array([parameters.get("plot_size",0), location_map.get(parameters.get("location", "urban"),0), parameters.get("road_width",0)]).astype(np.float32)
-    
-    action, _ = system_state.rl_agent.predict(rl_state_np, deterministic=True)
-    rl_optimal_action = int(action)
+    # Check if RL agent is available
+    if system_state.rl_agent is not None:
+        location_map = {"urban": 0, "suburban": 1, "rural": 2}
+        rl_state_np = np.array([parameters.get("plot_size",0), location_map.get(parameters.get("location", "urban"),0), parameters.get("road_width",0)]).astype(np.float32)
+        
+        action, _ = system_state.rl_agent.predict(rl_state_np, deterministic=True)
+        rl_optimal_action = int(action)
 
-    # Convert the numpy state to a torch Tensor to get the probability distribution
-    rl_state_tensor = torch.as_tensor(rl_state_np, device=system_state.rl_agent.device).reshape(1, -1)
-    distribution = system_state.rl_agent.policy.get_distribution(rl_state_tensor)
-    action_probabilities = distribution.distribution.probs.detach().cpu().numpy()[0]
-    base_confidence_score = float(action_probabilities[rl_optimal_action])
-    logger.info(f"Base RL confidence for {case_id}: {base_confidence_score:.3f}")
+        # Convert the numpy state to a torch Tensor to get the probability distribution
+        rl_state_tensor = torch.as_tensor(rl_state_np, device=system_state.rl_agent.device).reshape(1, -1)
+        distribution = system_state.rl_agent.policy.get_distribution(rl_state_tensor)
+        action_probabilities = distribution.distribution.probs.detach().cpu().numpy()[0]
+        base_confidence_score = float(action_probabilities[rl_optimal_action])
+        logger.info(f"Base RL confidence for {case_id}: {base_confidence_score:.3f}")
+    else:
+        # If RL agent is not available, use a default confidence score
+        logger.warning("RL agent not available, using default confidence score")
+        base_confidence_score = 0.75  # Default confidence score
+        rl_optimal_action = 0
     
     # --- D2. Apply City-Specific Confidence Adjustment (NEW: Adaptive Feedback Integration) ---
     try:
@@ -134,6 +141,3 @@ def process_case_logic(case_data, system_state):
     logger.info(f"PIPELINE_COMPLETE for case: {case_id}", extra={'extra_data': {'final_report': final_report}})
     
     return final_report
-
-    
-
