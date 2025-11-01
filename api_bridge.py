@@ -110,6 +110,31 @@ class CityFeedbackStats(BaseModel):
 # API ENDPOINTS
 # ============================================================================
 
+@app.get("/")
+def root():
+    """Root endpoint with API information and available endpoints."""
+    return JSONResponse(content={
+        "message": "AI Design Platform Bridge API",
+        "version": "2.0.0",
+        "description": "REST API bridge connecting MCP backend with AI Design Platform frontend",
+        "documentation": {
+            "swagger": "/api/design-bridge/docs",
+            "redoc": "/api/design-bridge/redoc"
+        },
+        "endpoints": {
+            "health_check": "GET /api/design-bridge/health",
+            "get_rules_by_city": "GET /api/design-bridge/rules/{city}",
+            "get_geometry_info": "GET /api/design-bridge/geometry/{case_id}",
+            "download_geometry": "GET /api/design-bridge/geometry/{case_id}/download",
+            "get_feedback_by_case": "GET /api/design-bridge/feedback/{case_id}",
+            "get_city_feedback_stats": "GET /api/design-bridge/feedback/city/{city}/stats",
+            "get_reasoning_output": "GET /api/design-bridge/reasoning/{case_id}",
+            "get_available_cities": "GET /api/design-bridge/cities",
+            "get_all_projects": "GET /api/design-bridge/projects"
+        }
+    })
+
+
 @app.get("/api/design-bridge/health")
 def health_check():
     """Health check endpoint"""
