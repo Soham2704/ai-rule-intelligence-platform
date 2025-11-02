@@ -1,6 +1,45 @@
 services:
+  # Main API Service
   - type: web
-    name: ai-rule-intelligence-platform
+    name: ai-rule-api
     env: python
+    plan: free
     buildCommand: "chmod +x build.sh && ./build.sh"
-    startCommand: "python start_server_full.py"
+    startCommand: "python main.py"
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: PYTHON_VERSION
+        value: 3.12.0
+
+  # API Bridge Service
+  - type: web
+    name: ai-rule-bridge
+    env: python
+    plan: free
+    buildCommand: "chmod +x build.sh && ./build.sh"
+    startCommand: "python api_bridge.py"
+    envVars:
+      - key: PORT
+        value: 8001
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: MAIN_API_URL
+        value: "https://ai-rule-api.onrender.com"
+
+  # Streamlit UI Service
+  - type: web
+    name: ai-rule-ui
+    env: python
+    plan: free
+    buildCommand: "chmod +x build.sh && ./build.sh"
+    startCommand: "python -m streamlit run design_platform_ui.py --server.port=$PORT --server.address=0.0.0.0"
+    envVars:
+      - key: PORT
+        value: 8501
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: MAIN_API_URL
+        value: "https://ai-rule-api.onrender.com"
+      - key: BRIDGE_API_URL
+        value: "https://ai-rule-bridge.onrender.com/api/design-bridge"

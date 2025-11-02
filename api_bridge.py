@@ -24,7 +24,7 @@ from database_setup import SessionLocal, Rule, Feedback, GeometryOutput, Reasoni
 from mcp_client import MCPClient
 
 # Main API URL - support environment variable for deployment
-MAIN_API_URL = os.getenv("MAIN_API_URL", "http://127.0.0.1:8000")
+MAIN_API_URL = os.getenv("MAIN_API_URL", "https://ai-rule-api.onrender.com")
 
 # Initialize MCP Client
 mcp_client = MCPClient()
@@ -518,4 +518,8 @@ if __name__ == "__main__":
     print("Documentation: http://127.0.0.1:8001/api/design-bridge/docs")
     print("=" * 80)
     
-    uvicorn.run("api_bridge:app", host="0.0.0.0", port=8001, reload=True)
+    # Use 0.0.0.0 for Render deployment, 127.0.0.1 for local testing
+    host = "0.0.0.0" if os.getenv("RENDER") else "127.0.0.1"
+    # Disable reload for Render deployment
+    reload = False if os.getenv("RENDER") else True
+    uvicorn.run("api_bridge:app", host=host, port=8001, reload=reload)

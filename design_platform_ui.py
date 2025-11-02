@@ -15,8 +15,9 @@ import os
 from datetime import datetime
 
 # Configuration - Support environment variables for deployment
-MAIN_API_URL = os.getenv("MAIN_API_URL", "http://127.0.0.1:8000")
-BRIDGE_API_URL = os.getenv("BRIDGE_API_URL", "http://127.0.0.1:8001/api/design-bridge")
+# Use Render service URLs by default, fallback to localhost for local development
+MAIN_API_URL = os.getenv("MAIN_API_URL", "https://ai-rule-api.onrender.com")
+BRIDGE_API_URL = os.getenv("BRIDGE_API_URL", "https://ai-rule-bridge.onrender.com/api/design-bridge")
 
 # Page Configuration
 st.set_page_config(

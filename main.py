@@ -419,4 +419,6 @@ def health_check():
 if __name__ == "__main__":
     print("--- Starting MCP-Integrated API Server with Uvicorn ---")
     print("Access the interactive API docs at http://127.0.0.1:8000/docs")
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
+    # Use 0.0.0.0 for Render deployment, 127.0.0.1 for local testing
+    host = "0.0.0.0" if os.getenv("RENDER") else "127.0.0.1"
+    uvicorn.run("main:app", host=host, port=8000, reload=False)
