@@ -7,8 +7,6 @@ services:
     buildCommand: "chmod +x build.sh && ./build.sh"
     startCommand: "python -m uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
-      - key: PORT
-        value: 8000
       - key: PYTHON_VERSION
         value: 3.12.0
 
@@ -20,8 +18,6 @@ services:
     buildCommand: "chmod +x build.sh && ./build.sh"
     startCommand: "python -m uvicorn api_bridge:app --host 0.0.0.0 --port $PORT"
     envVars:
-      - key: PORT
-        value: 8001
       - key: PYTHON_VERSION
         value: 3.12.0
       - key: MAIN_API_URL
@@ -35,8 +31,6 @@ services:
     buildCommand: "chmod +x build.sh && ./build.sh"
     startCommand: "python -m streamlit run design_platform_ui.py --server.port=$PORT --server.address=0.0.0.0"
     envVars:
-      - key: PORT
-        value: 8501
       - key: PYTHON_VERSION
         value: 3.12.0
       - key: MAIN_API_URL
