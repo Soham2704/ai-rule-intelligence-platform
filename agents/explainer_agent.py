@@ -1,7 +1,7 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 # Enhanced prompt for user-friendly, contextual explanations
 EXPLAINER_PROMPT = """
@@ -102,57 +102,17 @@ class ExplainerAgent:
     of building compliance rules with detailed reasoning chains.
     """
     
-    def __init__(self, llm: ChatGoogleGenerativeAI):
+    def __init__(self, llm: Optional[ChatGoogleGenerativeAI] = None):
         self.llm = llm
-        self.explainer_prompt = PromptTemplate.from_template(EXPLAINER_PROMPT)
-        self.clause_prompt = PromptTemplate.from_template(CLAUSE_EXTRACTION_PROMPT)
-        self.explainer_chain = self.explainer_prompt | self.llm
-        self.clause_chain = self.clause_prompt | self.llm
+        if self.llm is not None:
+            self.explainer_prompt = PromptTemplate.from_template(EXPLAINER_PROMPT)
+            self.clause_prompt = PromptTemplate.from_template(CLAUSE_EXTRACTION_PROMPT)
+            self.explainer_chain = self.explainer_prompt | self.llm
+            self.clause_chain = self.clause_prompt | self.llm
+        else:
+            self.explainer_chain = None
+            self.clause_chain = None
         print("✓ ExplainerAgent initialized with advanced reasoning capabilities.")
-
-    def extract_clause_summaries(self, rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Extracts structured clause information from raw rule data.
-        
-        Args:
-            rules: List of rule dictionaries from MCP
-            
-        Returns:
-            List of structured clause summaries
-        """
-        clause_summaries = []
-        
-        for rule in rules:
-            try:
-                # Create a concise summary for each rule
-                clause_summary = {
-                    "clause_id": rule.get("id", "Unknown"),
-                    "authority": rule.get("authority", ""),
-                    "clause_no": rule.get("clause_no", ""),
-                    "entitlements": rule.get("entitlements", {}),
-                    "conditions": rule.get("conditions", {}),
-                    "notes": rule.get("notes", "")
-                }
-                
-                # Extract key entitlement values
-                entitlements = rule.get("entitlements", {})
-                summary_parts = []
-                
-                if "total_fsi" in entitlements:
-                    summary_parts.append(f"FSI: {entitlements['total_fsi']}")
-                if "max_height_m" in entitlements:
-                    summary_parts.append(f"Height: {entitlements['max_height_m']}m")
-                if "ground_coverage_percent" in entitlements:
-                    summary_parts.append(f"Coverage: {entitlements['ground_coverage_percent']}%")
-                
-                clause_summary["quick_summary"] = ", ".join(summary_parts) if summary_parts else "See entitlements"
-                clause_summaries.append(clause_summary)
-                
-            except Exception as e:
-                print(f"⚠ Warning: Could not extract clause summary for rule: {e}")
-                continue
-        
-        return clause_summaries
 
     def generate_detailed_explanation(
         self, 
@@ -176,6 +136,10 @@ class ExplainerAgent:
                 f"Please verify parameters or consult local development control regulations."
             )
 
+        # If LLM is not available, use fallback explanation
+        if self.llm is None or self.explainer_chain is None:
+            return self._generate_fallback_explanation(user_query, applicable_rules)
+
         try:
             # Use LLM to generate comprehensive explanation
             response = self.explainer_chain.invoke({
@@ -183,7 +147,15 @@ class ExplainerAgent:
                 "applicable_rules": json.dumps(applicable_rules, indent=2)
             })
             
-            explanation = response.content.strip()
+            # Handle different response types
+            if hasattr(response, 'content'):
+                explanation = str(response.content)
+            elif isinstance(response, str):
+                explanation = response
+            else:
+                explanation = str(response)
+            
+            explanation = explanation.strip()
             
             # Add metadata footer
             explanation += f"\n\n[Total rules applied: {len(applicable_rules)}]"
@@ -273,6 +245,50 @@ class ExplainerAgent:
             "rules_applied": [rule.get("id") for rule in applicable_rules]
         }
 
+    def extract_clause_summaries(self, rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Extracts structured clause information from raw rule data.
+        
+        Args:
+            rules: List of rule dictionaries from MCP
+            
+        Returns:
+            List of structured clause summaries
+        """
+        clause_summaries = []
+        
+        for rule in rules:
+            try:
+                # Create a concise summary for each rule
+                clause_summary = {
+                    "clause_id": rule.get("id", "Unknown"),
+                    "authority": rule.get("authority", ""),
+                    "clause_no": rule.get("clause_no", ""),
+                    "entitlements": rule.get("entitlements", {}),
+                    "conditions": rule.get("conditions", {}),
+                    "notes": rule.get("notes", "")
+                }
+                
+                # Extract key entitlement values
+                entitlements = rule.get("entitlements", {})
+                summary_parts = []
+                
+                if "total_fsi" in entitlements:
+                    summary_parts.append(f"FSI: {entitlements['total_fsi']}")
+                if "max_height_m" in entitlements:
+                    summary_parts.append(f"Height: {entitlements['max_height_m']}m")
+                if "ground_coverage_percent" in entitlements:
+                    summary_parts.append(f"Coverage: {entitlements['ground_coverage_percent']}%")
+                
+                clause_summary["quick_summary"] = ", ".join(summary_parts) if summary_parts else "See entitlements"
+                clause_summaries.append(clause_summary)
+                
+            except Exception as e:
+                print(f"⚠ Warning: Could not extract clause summary for rule: {e}")
+                continue
+        
+        return clause_summaries
+
 
 if __name__ == "__main__":
     # Test the explainer agent
@@ -283,10 +299,14 @@ if __name__ == "__main__":
     import os
     
     load_dotenv()
-    os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY")
+    os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY") or ""
     
-    llm = ChatGoogleGenerativeAI(model="gemini-pro-latest")
-    explainer = ExplainerAgent(llm)
+    try:
+        llm = ChatGoogleGenerativeAI(model="gemini-pro-latest")
+        explainer = ExplainerAgent(llm)
+    except Exception as e:
+        print(f"Could not initialize LLM: {e}")
+        explainer = ExplainerAgent(None)
     
     # Mock data
     test_query = {
