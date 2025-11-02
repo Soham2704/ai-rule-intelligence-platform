@@ -68,17 +68,16 @@ def get_cases_by_city(city):
     try:
         # Debug: Print URLs
         print(f"MAIN_API_URL: {MAIN_API_URL}")
-        print(f"BRIDGE_API_URL: {BRIDGE_API_URL}")
         
-        # Get all projects first
-        projects_response = requests.get(f"{BRIDGE_API_URL}/projects", timeout=5)
+        # Get all projects first from main API
+        projects_response = requests.get(f"{MAIN_API_URL}/projects", timeout=5)
         print(f"Projects response status: {projects_response.status_code}")
         print(f"Projects response content: {projects_response.text}")
         
         if projects_response.status_code != 200:
             return []
         
-        projects = projects_response.json().get("projects", [])
+        projects = projects_response.json()
         print(f"Projects: {projects}")
         cases = []
         
@@ -137,9 +136,12 @@ def get_cases_by_city(city):
 def get_case_reasoning(case_id):
     """Get reasoning output for a specific case"""
     try:
-        response = requests.get(f"{BRIDGE_API_URL}/reasoning/{case_id}", timeout=5)
+        # Try to get from database first
+        response = requests.get(f"{MAIN_API_URL}/reasoning/{case_id}", timeout=5)
         if response.status_code == 200:
             return response.json()
+        
+        # Fallback to basic case data if no dedicated reasoning endpoint
         return None
     except:
         return None

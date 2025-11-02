@@ -1,18 +1,19 @@
-import json
-import os
-import uvicorn
-from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
+from typing import List, Dict, Any, Optional
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Optional
+from datetime import datetime
+import os
+import json
 import logging
 
-# Import our main processing logic
-from main_pipeline import process_case_logic
+from database_setup import SessionLocal, Rule, Feedback, GeometryOutput, ReasoningOutput
 from mcp_client import MCPClient
-from database_setup import create_database, SessionLocal, Rule, Feedback
+from main_pipeline import process_case_logic
 from populate_comprehensive_rules import populate_comprehensive_rules
+from database_setup import create_database
 from adaptive_feedback_system import AdaptiveFeedbackSystem
 
 # Set up logging
@@ -409,14 +410,96 @@ def get_feedback_summary():
     except Exception as e:
         raise HTTPException(status_code=500, detail="Could not process feedback from MCP.")
 
+@app.get("/reasoning/{case_id}", summary="Get reasoning output for a specific case")
+def get_reasoning_by_case(case_id: str) -> Dict[str, Any]:
+    """Get reasoning output for a specific case from the database."""
+    if not state.is_initialized: raise HTTPException(status_code=503, detail="System is initializing.")
+    if not state.mcp_client: raise HTTPException(status_code=501, detail="Database not available.")
+    try:
+        # Try to get from ReasoningOutput table
+        reasoning_record = state.mcp_client.db.query(ReasoningOutput).filter(ReasoningOutput.case_id == case_id).first()
+        if reasoning_record:
+            return {
+                "case_id": getattr(reasoning_record, 'case_id', ''),
+                "project_id": getattr(reasoning_record, 'project_id', ''),
+                "rules_applied": getattr(reasoning_record, 'rules_applied', []),
+                "reasoning": getattr(reasoning_record, 'reasoning_summary', ''),
+                "clause_summaries": getattr(reasoning_record, 'clause_summaries', []),
+                "confidence_score": getattr(reasoning_record, 'confidence_score', 0.0),
+                "confidence_level": getattr(reasoning_record, 'confidence_level', ''),
+                "confidence_note": getattr(reasoning_record, 'confidence_note', ''),
+                "timestamp": getattr(reasoning_record, 'timestamp', '')
+            }
+        
+        # Fallback: try to get from JSON files
+        projects_dir = "outputs/projects"
+        if os.path.exists(projects_dir):
+            for project_id in os.listdir(projects_dir):
+                project_path = os.path.join(projects_dir, project_id)
+                if os.path.isdir(project_path):
+                    report_file = os.path.join(project_path, f"{case_id}_report.json")
+                    if os.path.exists(report_file):
+                        with open(report_file, 'r') as f:
+                            return json.load(f)
+        
+        raise HTTPException(status_code=404, detail=f"Reasoning data not found for case: {case_id}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reasoning data: {e}")
+
 # Health check endpoint for deployment verification
 @app.get("/health", summary="Health check endpoint")
 def health_check():
     """Simple health check endpoint to verify the service is running."""
     return {"status": "healthy", "message": "AI Rule Intelligence Platform is running", "initialized": state.is_initialized}
 
+@app.get("/projects", summary="Get all projects")
+def get_all_projects() -> List[Dict[str, Any]]:
+    """Get list of all projects with metadata."""
+    try:
+        # Get all unique project IDs from the outputs directory
+        projects_dir = "outputs/projects"
+        if not os.path.exists(projects_dir):
+            return []
+        
+        project_list = []
+        for project_id in os.listdir(projects_dir):
+            project_path = os.path.join(projects_dir, project_id)
+            if os.path.isdir(project_path):
+                # Count cases in this project
+                case_count = 0
+                latest_case = None
+                latest_timestamp = None
+                
+                try:
+                    for filename in os.listdir(project_path):
+                        if filename.endswith("_report.json"):
+                            case_count += 1
+                            # Try to get timestamp from file
+                            file_timestamp = os.path.getmtime(os.path.join(project_path, filename))
+                            if latest_timestamp is None or file_timestamp > latest_timestamp:
+                                latest_timestamp = file_timestamp
+                                # Extract case_id from filename
+                                case_id = filename.replace("_report.json", "")
+                                latest_case = case_id
+                except Exception:
+                    pass
+                
+                project_list.append({
+                    "project_id": project_id,
+                    "case_count": case_count,
+                    "latest_case_id": latest_case,
+                    "last_updated": datetime.fromtimestamp(latest_timestamp).isoformat() + "Z" if latest_timestamp else None
+                })
+        
+        return project_list
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching projects: {e}")
+
 # --- 7. Main execution block for running the server ---
 if __name__ == "__main__":
+    import uvicorn
     print("--- Starting MCP-Integrated API Server with Uvicorn ---")
     print("Access the interactive API docs at http://127.0.0.1:8000/docs")
     # Use 0.0.0.0 for Render deployment, 127.0.0.1 for local testing
