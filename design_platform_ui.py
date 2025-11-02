@@ -16,8 +16,15 @@ from datetime import datetime
 
 # Configuration - Support environment variables for deployment
 # Use Render service URLs by default, fallback to localhost for local development
+# Handle dynamic service URLs with random suffixes
 MAIN_API_URL = os.getenv("MAIN_API_URL", "https://ai-rule-api.onrender.com")
 BRIDGE_API_URL = os.getenv("BRIDGE_API_URL", "https://ai-rule-bridge.onrender.com/api/design-bridge")
+
+# If the URLs don't start with https://, assume they're service names and construct the full URLs
+if not MAIN_API_URL.startswith("http"):
+    MAIN_API_URL = f"https://{MAIN_API_URL}.onrender.com"
+if not BRIDGE_API_URL.startswith("http"):
+    BRIDGE_API_URL = f"https://{BRIDGE_API_URL}.onrender.com/api/design-bridge"
 
 # Page Configuration
 st.set_page_config(
@@ -59,33 +66,49 @@ def get_cities():
 def get_cases_by_city(city):
     """Get all processed cases for a specific city from reasoning outputs"""
     try:
+        # Debug: Print URLs
+        print(f"MAIN_API_URL: {MAIN_API_URL}")
+        print(f"BRIDGE_API_URL: {BRIDGE_API_URL}")
+        
         # Get all projects first
         projects_response = requests.get(f"{BRIDGE_API_URL}/projects", timeout=5)
+        print(f"Projects response status: {projects_response.status_code}")
+        print(f"Projects response content: {projects_response.text}")
+        
         if projects_response.status_code != 200:
             return []
         
         projects = projects_response.json().get("projects", [])
+        print(f"Projects: {projects}")
         cases = []
         
         # For each project, get cases and filter by city
         for project in projects:
             project_id = project["project_id"]
+            print(f"Processing project_id: {project_id}")
             try:
                 cases_response = requests.get(f"{MAIN_API_URL}/projects/{project_id}/cases", timeout=5)
+                print(f"Cases response status for {project_id}: {cases_response.status_code}")
+                print(f"Cases response content for {project_id}: {cases_response.text}")
+                
                 if cases_response.status_code == 200:
                     project_cases = cases_response.json()
+                    print(f"Project cases for {project_id}: {project_cases}")
                     # Filter cases by city
                     for case in project_cases:
                         case_city = case.get("city", "")
+                        print(f"Case city: '{case_city}', looking for: '{city}'")
                         # Direct match
                         if case_city and case_city.lower() == city.lower():
                             cases.append(case)
+                            print(f"Added case (direct match): {case}")
                         # Fallback: try to infer from case_id or rules if city field is missing
                         elif not case_city:
                             case_id = case.get("case_id", "")
                             if city.lower() in case_id.lower():
                                 case["city"] = city
                                 cases.append(case)
+                                print(f"Added case (case_id match): {case}")
                             elif case.get("rules_applied"):
                                 first_rule = case["rules_applied"][0] if case["rules_applied"] else ""
                                 city_prefix_map = {
@@ -98,11 +121,17 @@ def get_cases_by_city(city):
                                 if prefix and first_rule.startswith(prefix):
                                     case["city"] = city
                                     cases.append(case)
+                                    print(f"Added case (rule prefix match): {case}")
             except Exception as e:
+                print(f"Error processing project {project_id}: {e}")
                 continue
         
+        print(f"Final cases list: {cases}")
         return cases
     except Exception as e:
+        print(f"Error in get_cases_by_city: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def get_case_reasoning(case_id):

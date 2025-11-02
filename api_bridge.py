@@ -24,10 +24,16 @@ from database_setup import SessionLocal, Rule, Feedback, GeometryOutput, Reasoni
 from mcp_client import MCPClient
 
 # Main API URL - support environment variable for deployment
+# Handle dynamic service URLs with random suffixes
 MAIN_API_URL = os.getenv("MAIN_API_URL", "https://ai-rule-api.onrender.com")
+
+# If the URL doesn't start with https://, assume it's a service name and construct the full URL
+if not MAIN_API_URL.startswith("http"):
+    MAIN_API_URL = f"https://{MAIN_API_URL}.onrender.com"
 
 # Initialize MCP Client
 mcp_client = MCPClient()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -473,12 +479,20 @@ def get_all_projects():
     try:
         db = SessionLocal()
         
+        # Debug: Print database info
+        print("=== DEBUG: Getting all projects ===")
+        
         # Get all projects from reasoning outputs
-        projects = db.query(ReasoningOutput.project_id).distinct().all()
+        projects_query = db.query(ReasoningOutput.project_id).distinct()
+        print(f"Projects query: {projects_query}")
+        projects = projects_query.all()
+        print(f"Projects result: {projects}")
+        
         project_list = []
         
         for proj in projects:
             project_id = str(proj[0]) if proj[0] else None
+            print(f"Processing project_id: {project_id}")
             if not project_id:
                 continue
             
@@ -486,6 +500,7 @@ def get_all_projects():
             case_count = db.query(ReasoningOutput).filter(
                 ReasoningOutput.project_id == project_id
             ).count()
+            print(f"Case count for {project_id}: {case_count}")
             
             # Get latest case
             latest = db.query(ReasoningOutput).filter(
@@ -500,9 +515,13 @@ def get_all_projects():
             })
         
         db.close()
+        print(f"Returning projects: {project_list}")
         return {"projects": project_list}
         
     except Exception as e:
+        print(f"Error in get_all_projects: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error fetching projects: {str(e)}")
 
 
