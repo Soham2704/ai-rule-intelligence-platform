@@ -6,10 +6,21 @@ import os
 # --- 1. Database Configuration ---
 DB_NAME = "rules.db"
 DB_PATH = os.path.join("rules_db", DB_NAME)
-DATABASE_URL = f"sqlite:///{DB_PATH}"
 
-# Create the directory if it doesn't exist to prevent errors
-os.makedirs("rules_db", exist_ok=True)
+# For Render deployment, we might need to use a different path
+# Check if we're on Render by looking for Render-specific environment variables
+if os.environ.get('RENDER'):
+    # On Render, we might need to use a different directory
+    DB_DIR = "/opt/render/project/src/rules_db"
+    os.makedirs(DB_DIR, exist_ok=True)
+    DB_PATH = os.path.join(DB_DIR, DB_NAME)
+    print(f"Render environment detected. Using database path: {DB_PATH}")
+else:
+    # Local development
+    os.makedirs("rules_db", exist_ok=True)
+    print(f"Local environment. Using database path: {DB_PATH}")
+
+DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 # --- 2. SQLAlchemy Setup ---
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -74,9 +85,19 @@ def create_database():
     This function creates the database and all required tables if they don't exist.
     """
     print(f"--- Creating/Updating database at '{DB_PATH}' ---")
+    print(f"Database directory exists: {os.path.exists(os.path.dirname(DB_PATH))}")
+    print(f"Database file exists: {os.path.exists(DB_PATH)}")
+    
+    # Create all tables
     Base.metadata.create_all(bind=engine)
+    
+    # Verify tables were created
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    print(f"Database tables: {tables}")
+    
     print("--- Database and tables created/updated successfully. ---")
 
 if __name__ == "__main__":
     create_database()
-

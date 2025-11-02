@@ -1,4 +1,5 @@
 from database_setup import SessionLocal, Rule
+import os
 
 # Comprehensive Mumbai rules based on DCPR 2034
 COMPREHENSIVE_MUMBAI_RULES = [
@@ -207,6 +208,12 @@ def populate_comprehensive_rules():
     print("POPULATING COMPREHENSIVE MUMBAI RULES")
     print("=" * 60)
     
+    # Print current working directory and database path
+    from database_setup import DB_PATH
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Database path: {DB_PATH}")
+    print(f"Database file exists: {os.path.exists(DB_PATH)}")
+    
     db = SessionLocal()
     try:
         rules_added = 0
@@ -241,8 +248,18 @@ def populate_comprehensive_rules():
         total_rules = db.query(Rule).filter(Rule.city == "Mumbai").count()
         print(f"\nTotal Mumbai rules in database: {total_rules}")
         
+        # Print some sample rules for verification
+        if total_rules > 0:
+            sample_rules = db.query(Rule).filter(Rule.city == "Mumbai").limit(3).all()
+            print("Sample rules in database:")
+            for rule in sample_rules:
+                print(f"  - {rule.id}: {rule.rule_type}")
+                print(f"    Conditions: {rule.conditions}")
+        
     except Exception as e:
         print(f"\n❌ ERROR: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
     finally:
         db.close()
