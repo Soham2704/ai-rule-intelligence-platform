@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import os
 
-from database_setup import SessionLocal, Rule, Feedback, GeometryOutput, ReasoningOutput
+from database_setup import SessionLocal, Rule, Feedback, GeometryOutput, ReasoningOutput, DB_PATH, engine
 from mcp_client import MCPClient
 
 # Main API URL - support environment variable for deployment
@@ -481,6 +481,26 @@ def get_all_projects():
         
         # Debug: Print database info
         print("=== DEBUG: Getting all projects ===")
+        print(f"Database path: {DB_PATH}")
+        print(f"Database exists: {os.path.exists(DB_PATH)}")
+        if os.path.exists(DB_PATH):
+            print(f"Database size: {os.path.getsize(DB_PATH)} bytes")
+        
+        # Debug: Check if tables exist and have data
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        print(f"Database tables: {tables}")
+        
+        if 'reasoning_outputs' in tables:
+            count = db.query(ReasoningOutput).count()
+            print(f"ReasoningOutput table has {count} records")
+            
+            # Debug: Show some sample records
+            if count > 0:
+                sample_records = db.query(ReasoningOutput).limit(3).all()
+                for record in sample_records:
+                    print(f"Sample record - case_id: {getattr(record, 'case_id', 'N/A')}, project_id: {getattr(record, 'project_id', 'N/A')}")
         
         # Get all projects from reasoning outputs
         projects_query = db.query(ReasoningOutput.project_id).distinct()

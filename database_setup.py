@@ -5,20 +5,24 @@ import os
 
 # --- 1. Database Configuration ---
 DB_NAME = "rules.db"
-DB_PATH = os.path.join("rules_db", DB_NAME)
+DB_DIR = "rules_db"
 
-# For Render deployment, we might need to use a different path
+# For Render deployment, we need to use an absolute path that both services can access
 # Check if we're on Render by looking for Render-specific environment variables
 if os.environ.get('RENDER'):
-    # On Render, we might need to use a different directory
-    DB_DIR = "/opt/render/project/src/rules_db"
-    os.makedirs(DB_DIR, exist_ok=True)
+    # On Render, use a shared directory that both services can access
+    # Use the project root directory to ensure both services use the same path
+    PROJECT_ROOT = "/opt/render/project/src"
+    DB_DIR = os.path.join(PROJECT_ROOT, "rules_db")
     DB_PATH = os.path.join(DB_DIR, DB_NAME)
     print(f"Render environment detected. Using database path: {DB_PATH}")
 else:
     # Local development
-    os.makedirs("rules_db", exist_ok=True)
+    DB_PATH = os.path.join(DB_DIR, DB_NAME)
     print(f"Local environment. Using database path: {DB_PATH}")
+
+# Ensure the directory exists
+os.makedirs(DB_DIR, exist_ok=True)
 
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
