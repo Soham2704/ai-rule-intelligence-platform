@@ -5,13 +5,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-import uuid
+from typing import Dict, Any, List, Optional
+import logging
 
-# --- Import our logger, the NEW MCP Client, and the pipeline logic ---
-from logging_config import logger
+# Import our main processing logic
+from main_pipeline import process_case_logic
+from mcp_client import MCPClient
+from database_setup import create_database, SessionLocal, Rule, Feedback
+from populate_comprehensive_rules import populate_comprehensive_rules
+from adaptive_feedback_system import AdaptiveFeedbackSystem
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # --- 1. Create the FastAPI App with Enhanced Documentation ---
 app = FastAPI(
@@ -82,41 +88,56 @@ class FeedbackInput(BaseModel):
 # --- 4. Global State (Now much simpler) ---
 class SystemState:
     def __init__(self):
-        self.mcp_client: Optional['MCPClient'] = None
-        self.llm = None
-        self.rl_agent = None
+        # Initialize database when the app starts
+        print("=== Initializing database on app startup ===")
+        self.initialize_database()
+        
+        # Initialize MCP client
+        self.mcp_client: Optional[MCPClient] = None
+        self.llm: Optional[Any] = None
+        self.rl_agent: Optional[Any] = None
         self.is_initialized = False
+    
+    def initialize_database(self):
+        """Initialize database and populate with rules."""
+        try:
+            print("Creating database...")
+            create_database()
+            
+            # Check if rules exist, if not populate them
+            db = SessionLocal()
+            rule_count = db.query(Rule).count()
+            print(f"Current rule count: {rule_count}")
+            
+            if rule_count == 0:
+                print("Populating database with comprehensive rules...")
+                populate_comprehensive_rules()
+                new_count = db.query(Rule).count()
+                print(f"Rules after population: {new_count}")
+            else:
+                print("Database already populated with rules")
+                
+            db.close()
+        except Exception as e:
+            print(f"Error initializing database: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _load_rl_agent(self):
+        """Load the RL agent if available."""
+        try:
+            from stable_baselines3 import PPO
+            if os.path.exists("rl_env/ppo_hirl_agent.zip"):
+                self.rl_agent = PPO.load("rl_env/ppo_hirl_agent.zip")
+                print("RL agent loaded successfully")
+            else:
+                print("RL agent model file not found")
+        except ImportError:
+            print("Stable Baselines3 not installed, RL agent not available")
+        except Exception as e:
+            print(f"Error loading RL agent: {e}")
 
 state = SystemState()
-
-# Import these modules AFTER the app is defined to avoid circular imports
-# Use try/except to handle missing optional dependencies gracefully
-try:
-    from mcp_client import MCPClient 
-except ImportError as e:
-    logger.warning(f"MCPClient import failed: {e}")
-    MCPClient = None
-
-try:
-    from main_pipeline import process_case_logic
-except ImportError as e:
-    logger.warning(f"process_case_logic import failed: {e}")
-    def process_case_logic(*args, **kwargs):
-        raise HTTPException(status_code=501, detail="Processing pipeline not available")
-
-try:
-    from database_setup import Rule, Feedback, GeometryOutput
-except ImportError as e:
-    logger.warning(f"Database imports failed: {e}")
-    Rule, Feedback, GeometryOutput = None, None, None
-
-try:
-    from adaptive_feedback_system import AdaptiveFeedbackSystem
-except ImportError as e:
-    logger.warning(f"AdaptiveFeedbackSystem import failed: {e}")
-    class AdaptiveFeedbackSystem:
-        def process_feedback(self, **kwargs):
-            return {"status": "not_implemented"}
 
 # --- 5. Server Startup & Shutdown Events ---
 @app.on_event("startup")
@@ -125,20 +146,22 @@ def startup_event():
     logger.info("Server starting up... Initializing MCP Client and AI models.")
     
     # Try to import AI models, but don't fail if they're not available
+    ChatGoogleGenerativeAI = None
+    PPO = None
     try:
         from langchain_google_genai import ChatGoogleGenerativeAI
         from stable_baselines3 import PPO
     except ImportError as e:
         logger.warning(f"AI model imports failed: {e}")
-        ChatGoogleGenerativeAI = None
-        PPO = None
 
+    from dotenv import load_dotenv
     load_dotenv()
-    os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY")
+    os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY") or ""
 
     # We now create one instance of the MCP Client for the whole application
-    if MCPClient:
+    if 'MCPClient' in globals():
         state.mcp_client = MCPClient()
+        print("MCP client initialized in startup event")
     else:
         logger.warning("MCPClient not available")
     
@@ -175,6 +198,41 @@ def shutdown_event():
             logger.warning(f"Error closing MCP client: {e}")
 
 # --- 6. API Endpoints (Now refactored to use MCP Client) ---
+
+# Debug endpoint to check database status
+@app.get("/debug/database")
+def debug_database_status():
+    """Debug endpoint to check database status."""
+    try:
+        # Check if database file exists
+        from database_setup import DB_PATH
+        db_exists = os.path.exists(DB_PATH)
+        db_size = os.path.getsize(DB_PATH) if db_exists else 0
+        
+        # Check rules count
+        if state.mcp_client:
+            db = state.mcp_client.db
+            total_rules = db.query(Rule).count() if Rule else 0
+            mumbai_rules = db.query(Rule).filter(Rule.city == "Mumbai").count() if Rule else 0
+            
+            # Get sample rules
+            sample_rules = []
+            if Rule and total_rules > 0:
+                rules = db.query(Rule).filter(Rule.city == "Mumbai").limit(5).all()
+                if rules:
+                    sample_rules = [{"id": r.id, "type": r.rule_type, "conditions": r.conditions} for r in rules]
+            
+            return {
+                "database_exists": db_exists,
+                "database_size_bytes": db_size,
+                "total_rules": total_rules,
+                "mumbai_rules": mumbai_rules,
+                "sample_rules": sample_rules
+            }
+        else:
+            return {"error": "MCP client not initialized"}
+    except Exception as e:
+        return {"error": str(e)}
 
 # Root endpoint
 @app.get("/", summary="API Root")
@@ -227,23 +285,25 @@ def get_project_cases(project_id: str) -> List[Dict[str, Any]]:
         raise HTTPException(status_code=500, detail=f"Error reading project reports: {e}")
     return project_reports
 
-@app.post("/feedback", summary="Submit feedback for a processed case with adaptive learning")
-def feedback_endpoint(feedback: FeedbackInput):
-    if not state.is_initialized: 
-        raise HTTPException(status_code=503, detail="System is initializing.")
+@app.post("/feedback", summary="Save user feedback and trigger adaptive learning")
+def save_feedback(feedback: FeedbackInput):
+    if not state.is_initialized: raise HTTPException(status_code=503, detail="System is initializing.")
+    if not state.mcp_client: raise HTTPException(status_code=501, detail="MCP Client not available.")
+    
     try:
-        # Save to MCP database
-        if state.mcp_client:
-            feedback_record = state.mcp_client.add_feedback(feedback.dict())
-            logger.info(f"Feedback saved via MCP for case {feedback.case_id}")
-        else:
-            feedback_record = type('obj', (object,), {'id': 'temp_id'})()
-            logger.warning("MCP client not available, using temporary feedback record")
+        # Save feedback to MCP
+        feedback_data = {
+            "case_id": feedback.case_id,
+            "project_id": feedback.project_id,
+            "input_case": feedback.input_case,
+            "output_report": feedback.output_report,
+            "user_feedback": feedback.user_feedback
+        }
+        feedback_record = state.mcp_client.add_feedback(feedback_data)
         
-        # Process with adaptive feedback system (NEW: Integration)
         try:
+            # Trigger adaptive feedback learning (NEW)
             adaptive_system = AdaptiveFeedbackSystem()
-            
             adaptation_result = adaptive_system.process_feedback(
                 case_id=feedback.case_id,
                 project_id=feedback.project_id,
@@ -252,15 +312,12 @@ def feedback_endpoint(feedback: FeedbackInput):
                 input_params=feedback.input_case,
                 output_report=feedback.output_report
             )
+            adaptive_system.close()
             
-            # Log audit trail
-            logger.info(f"Adaptive feedback processed for {feedback.case_id}:")
-            for trail_entry in adaptation_result.get("audit_trail", []):
-                logger.info(f"  {trail_entry}")
-            
+            # Return success with adaptation details
             return {
                 "status": "success",
-                "feedback_id": feedback_record.id,
+                "feedback_id": getattr(feedback_record, 'id', 'unknown'),
                 "adaptation_summary": adaptation_result  # NEW: Include adaptation details
             }
             
@@ -269,7 +326,7 @@ def feedback_endpoint(feedback: FeedbackInput):
             # Still return success if MCP save worked
             return {
                 "status": "success",
-                "feedback_id": feedback_record.id,
+                "feedback_id": getattr(feedback_record, 'id', 'unknown'),
                 "adaptation_summary": None,
                 "note": "Feedback saved but adaptive processing unavailable"
             }
@@ -320,13 +377,15 @@ def get_geometry(project_id: str, case_id: str):
 @app.get("/feedback/{case_id}", summary="Fetch thumbs data for a given case_id")
 def get_feedback_by_case(case_id: str) -> List[Dict[str, Any]]:
     if not state.is_initialized: raise HTTPException(status_code=503, detail="System is initializing.")
-    if not state.mcp_client or not Feedback: raise HTTPException(status_code=501, detail="Database not available.")
+    if not state.mcp_client: raise HTTPException(status_code=501, detail="Database not available.")
     try:
         feedback_records = state.mcp_client.db.query(Feedback).filter(Feedback.case_id == case_id).all()
         return [
             {
-                "feedback_id": record.id, "project_id": record.project_id,
-                "feedback_type": record.feedback_type, "timestamp": record.timestamp
+                "feedback_id": getattr(record, 'id', 'unknown'),
+                "project_id": getattr(record, 'project_id', ''),
+                "feedback_type": getattr(record, 'feedback_type', ''),
+                "timestamp": getattr(record, 'timestamp', '')
             } for record in feedback_records
         ]
     except Exception as e:
@@ -335,13 +394,16 @@ def get_feedback_by_case(case_id: str) -> List[Dict[str, Any]]:
 @app.get("/get_feedback_summary", summary="Returns aggregated thumbs up/down stats")
 def get_feedback_summary():
     if not state.is_initialized: raise HTTPException(status_code=503, detail="System is initializing.")
-    if not state.mcp_client or not Feedback: raise HTTPException(status_code=501, detail="Database not available.")
+    if not state.mcp_client: raise HTTPException(status_code=501, detail="Database not available.")
     try:
         summary = {"upvotes": 0, "downvotes": 0, "total_feedback": 0}
         feedback_records = state.mcp_client.db.query(Feedback).all()
         for record in feedback_records:
-            if record.feedback_type == "up": summary["upvotes"] += 1
-            elif record.feedback_type == "down": summary["downvotes"] += 1
+            feedback_type = getattr(record, 'feedback_type', '')
+            if feedback_type == "up": 
+                summary["upvotes"] += 1
+            elif feedback_type == "down": 
+                summary["downvotes"] += 1
         summary["total_feedback"] = len(feedback_records)
         return summary
     except Exception as e:
@@ -357,4 +419,4 @@ def health_check():
 if __name__ == "__main__":
     print("--- Starting MCP-Integrated API Server with Uvicorn ---")
     print("Access the interactive API docs at http://127.0.0.1:8000/docs")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)

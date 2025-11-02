@@ -10,6 +10,19 @@ import subprocess
 import time
 import threading
 
+def debug_database_status():
+    """Debug the database status."""
+    print("=== DEBUGGING DATABASE STATUS ===")
+    try:
+        # Run the debug script
+        print("Running database debug script...")
+        import debug_database
+        debug_database.debug_database()
+    except Exception as e:
+        print(f"Error running debug script: {e}")
+        import traceback
+        traceback.print_exc()
+
 def initialize_database():
     """Initialize the database with required tables and data."""
     print("Initializing database...")
@@ -20,6 +33,8 @@ def initialize_database():
         # Print database path
         from database_setup import DB_PATH
         print(f"Database path: {DB_PATH}")
+        print(f"Database directory exists: {os.path.exists(os.path.dirname(DB_PATH))}")
+        print(f"Database file exists: {os.path.exists(DB_PATH)}")
         
         from database_setup import create_database
         create_database()
@@ -95,6 +110,9 @@ def start_api_bridge():
 
 def main():
     print("Starting AI Rule Intelligence Platform (Full Services)...")
+    
+    # Debug database status first
+    debug_database_status()
     
     # Initialize database
     initialize_database()
