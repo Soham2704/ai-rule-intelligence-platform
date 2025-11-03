@@ -302,35 +302,12 @@ def save_feedback(feedback: FeedbackInput):
         }
         feedback_record = state.mcp_client.add_feedback(feedback_data)
         
-        try:
-            # Trigger adaptive feedback learning (NEW)
-            adaptive_system = AdaptiveFeedbackSystem()
-            adaptation_result = adaptive_system.process_feedback(
-                case_id=feedback.case_id,
-                project_id=feedback.project_id,
-                city=feedback.input_case.get("city", "Unknown"),
-                feedback_type=feedback.user_feedback,
-                input_params=feedback.input_case,
-                output_report=feedback.output_report
-            )
-            adaptive_system.close()
-            
-            # Return success with adaptation details
-            return {
-                "status": "success",
-                "feedback_id": getattr(feedback_record, 'id', 'unknown'),
-                "adaptation_summary": adaptation_result  # NEW: Include adaptation details
-            }
-            
-        except Exception as e:
-            logger.warning(f"Adaptive feedback processing failed: {e}")
-            # Still return success if MCP save worked
-            return {
-                "status": "success",
-                "feedback_id": getattr(feedback_record, 'id', 'unknown'),
-                "adaptation_summary": None,
-                "note": "Feedback saved but adaptive processing unavailable"
-            }
+        # Return success immediately without adaptive processing to avoid double counting
+        return {
+            "status": "success",
+            "feedback_id": getattr(feedback_record, 'id', 'unknown'),
+            "message": "Feedback recorded successfully"
+        }
             
     except Exception as e:
         logger.error(f"Error in /feedback: {e}", exc_info=True)
@@ -407,6 +384,25 @@ def get_feedback_summary():
                 summary["downvotes"] += 1
         summary["total_feedback"] = len(feedback_records)
         return summary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Could not process feedback from MCP.")
+
+@app.get("/get_feedback_summary_compact", summary="Returns compact feedback stats")
+def get_feedback_summary_compact():
+    """Returns a more compact version of feedback statistics for UI display."""
+    if not state.is_initialized: raise HTTPException(status_code=503, detail="System is initializing.")
+    if not state.mcp_client: raise HTTPException(status_code=501, detail="Database not available.")
+    try:
+        feedback_records = state.mcp_client.db.query(Feedback).all()
+        upvotes = sum(1 for record in feedback_records if getattr(record, 'feedback_type', '') == "up")
+        downvotes = sum(1 for record in feedback_records if getattr(record, 'feedback_type', '') == "down")
+        
+        return {
+            "upvotes": upvotes,
+            "downvotes": downvotes,
+            "total": len(feedback_records),
+            "approval_rate": round(upvotes / len(feedback_records) * 100, 1) if feedback_records else 0
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail="Could not process feedback from MCP.")
 

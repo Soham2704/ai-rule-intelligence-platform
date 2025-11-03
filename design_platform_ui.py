@@ -168,6 +168,16 @@ def submit_feedback(case_data, feedback_type, selected_city=None):
     except Exception as e:
         return False
 
+def get_feedback_summary():
+    """Get compact feedback summary from the main API"""
+    try:
+        response = requests.get(f"{MAIN_API_URL}/get_feedback_summary_compact", timeout=5)
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except:
+        return None
+
 # Initialize session state for feedback tracking
 if "feedback_submitted" not in st.session_state:
     st.session_state.feedback_submitted = False
@@ -177,6 +187,20 @@ if "refresh_stats" not in st.session_state:
 # Main UI
 st.title("🏗️ AI Rule Intelligence - Case Feedback")
 st.markdown("### Review AI reasoning and provide feedback to improve the system")
+
+# Display feedback statistics at the top
+feedback_summary = get_feedback_summary()
+if feedback_summary:
+    st.markdown("---")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Feedback", feedback_summary["total"])
+    with col2:
+        st.metric("Upvotes", feedback_summary["upvotes"])
+    with col3:
+        st.metric("Downvotes", feedback_summary["downvotes"])
+    with col4:
+        st.metric("Approval Rate", f"{feedback_summary['approval_rate']}%")
 
 # City Selection
 st.markdown("---")
@@ -308,6 +332,8 @@ print(response.json())
                     # Update session state to trigger stats refresh
                     st.session_state.feedback_submitted = True
                     st.session_state.refresh_stats += 1
+                    # Refresh the page to show updated stats
+                    st.rerun()
                 else:
                     st.error("❌ Failed to record feedback. Please try again.")
         
@@ -318,6 +344,8 @@ print(response.json())
                     # Update session state to trigger stats refresh
                     st.session_state.feedback_submitted = True
                     st.session_state.refresh_stats += 1
+                    # Refresh the page to show updated stats
+                    st.rerun()
                 else:
                     st.error("❌ Failed to record feedback. Please try again.")
         
