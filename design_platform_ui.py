@@ -183,6 +183,8 @@ if "feedback_submitted" not in st.session_state:
     st.session_state.feedback_submitted = False
 if "refresh_stats" not in st.session_state:
     st.session_state.refresh_stats = 0
+if "last_feedback_case" not in st.session_state:
+    st.session_state.last_feedback_case = None
 
 # Main UI
 st.title("🏗️ AI Rule Intelligence - Case Feedback")
@@ -321,33 +323,37 @@ print(response.json())
         st.subheader("👥 Your Feedback")
         st.markdown("Was this AI analysis helpful and accurate?")
         
-        # Create feedback buttons in columns
-        col1, col2, col3 = st.columns([1, 1, 1])
+        # Check if feedback was already submitted for this case
+        case_already_voted = st.session_state.last_feedback_case == case_id
         
-        with col1:
-            if st.button("👍 Helpful (Upvote)", key="upvote_btn", help="This analysis was accurate and helpful"):
-                if submit_feedback(reasoning_data, "up", selected_city):
-                    st.success("✅ Thank you! Your upvote has been recorded.")
-                    st.balloons()
-                    # Update session state to trigger stats refresh
-                    st.session_state.feedback_submitted = True
-                    st.session_state.refresh_stats += 1
-                    # Refresh the page to show updated stats
-                    st.rerun()
-                else:
-                    st.error("❌ Failed to record feedback. Please try again.")
-        
-        with col3:
-            if st.button("👎 Not Helpful (Downvote)", key="downvote_btn", help="This analysis was inaccurate or not helpful"):
-                if submit_feedback(reasoning_data, "down", selected_city):
-                    st.success("✅ Thank you! Your feedback has been recorded.")
-                    # Update session state to trigger stats refresh
-                    st.session_state.feedback_submitted = True
-                    st.session_state.refresh_stats += 1
-                    # Refresh the page to show updated stats
-                    st.rerun()
-                else:
-                    st.error("❌ Failed to record feedback. Please try again.")
+        if case_already_voted:
+            st.info("✅ Feedback already recorded for this case. Thank you!")
+        else:
+            # Create feedback buttons in columns
+            col1, col2, col3 = st.columns([1, 1, 1])
+            
+            with col1:
+                if st.button("👍 Helpful (Upvote)", key=f"upvote_btn_{case_id}", help="This analysis was accurate and helpful", disabled=case_already_voted):
+                    if submit_feedback(reasoning_data, "up", selected_city):
+                        st.success("✅ Thank you! Your upvote has been recorded.")
+                        st.balloons()
+                        # Update session state to prevent resubmission
+                        st.session_state.last_feedback_case = case_id
+                        # Refresh the page to show updated stats
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to record feedback. Please try again.")
+            
+            with col3:
+                if st.button("👎 Not Helpful (Downvote)", key=f"downvote_btn_{case_id}", help="This analysis was inaccurate or not helpful", disabled=case_already_voted):
+                    if submit_feedback(reasoning_data, "down", selected_city):
+                        st.success("✅ Thank you! Your feedback has been recorded.")
+                        # Update session state to prevent resubmission
+                        st.session_state.last_feedback_case = case_id
+                        # Refresh the page to show updated stats
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to record feedback. Please try again.")
         
         # Feedback Statistics (if available)
         st.markdown("---")

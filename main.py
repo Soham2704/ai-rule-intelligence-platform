@@ -271,6 +271,32 @@ def run_case_endpoint(case_input: CaseInput):
         logger.error(f"Error in /run_case: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/run_case_summary", summary="Run the compliance pipeline and return only essential summary")
+def run_case_summary_endpoint(case_input: CaseInput):
+    if not state.is_initialized:
+        raise HTTPException(status_code=503, detail="System is initializing.")
+    try:
+        # The pipeline logic now receives the state object which contains the MCP client
+        full_report = process_case_logic(case_input.dict(), state)
+        
+        # Return only essential summary information
+        summary_report = {
+            "project_id": full_report.get("project_id"),
+            "case_id": full_report.get("case_id"),
+            "city": full_report.get("city"),
+            "parameters": full_report.get("parameters"),
+            "rules_applied": full_report.get("rules_applied", [])[:3],  # Limit to first 3 rules
+            "reasoning": full_report.get("reasoning", "")[:500] + "..." if len(full_report.get("reasoning", "")) > 500 else full_report.get("reasoning", ""),  # Limit reasoning length
+            "confidence_score": full_report.get("confidence_score"),
+            "confidence_level": full_report.get("confidence_level"),
+            "status": "success"
+        }
+        
+        return summary_report
+    except Exception as e:
+        logger.error(f"Error in /run_case_summary: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/projects/{project_id}/cases", summary="Get all case results for a specific project")
 def get_project_cases(project_id: str) -> List[Dict[str, Any]]:
     project_dir = f"outputs/projects/{project_id}"
