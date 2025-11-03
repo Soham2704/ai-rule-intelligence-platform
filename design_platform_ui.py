@@ -178,6 +178,19 @@ def get_feedback_summary():
     except:
         return None
 
+def get_case_feedback_stats(case_id):
+    """Get feedback statistics for a specific case"""
+    try:
+        response = requests.get(f"{MAIN_API_URL}/feedback/{case_id}", timeout=5)
+        if response.status_code == 200:
+            feedback_data = response.json()
+            upvotes = sum(1 for item in feedback_data if item.get("feedback_type") == "up")
+            downvotes = sum(1 for item in feedback_data if item.get("feedback_type") == "down")
+            return {"upvotes": upvotes, "downvotes": downvotes, "total": len(feedback_data)}
+        return {"upvotes": 0, "downvotes": 0, "total": 0}
+    except:
+        return {"upvotes": 0, "downvotes": 0, "total": 0}
+
 # Initialize session state for feedback tracking
 if "feedback_submitted" not in st.session_state:
     st.session_state.feedback_submitted = False
@@ -190,10 +203,11 @@ if "last_feedback_case" not in st.session_state:
 st.title("🏗️ AI Rule Intelligence - Case Feedback")
 st.markdown("### Review AI reasoning and provide feedback to improve the system")
 
-# Display feedback statistics at the top
+# Display overall feedback statistics at the top
 feedback_summary = get_feedback_summary()
 if feedback_summary:
     st.markdown("---")
+    st.subheader("📊 Overall Feedback Statistics")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Total Feedback", feedback_summary["total"])
@@ -203,6 +217,8 @@ if feedback_summary:
         st.metric("Downvotes", feedback_summary["downvotes"])
     with col4:
         st.metric("Approval Rate", f"{feedback_summary['approval_rate']}%")
+else:
+    st.warning("No feedback statistics available yet. Submit some feedback first!")
 
 # City Selection
 st.markdown("---")
@@ -277,6 +293,19 @@ print(response.json())
         # Display Case Information
         st.markdown("---")
         st.subheader(f"🔍 Case Analysis: {case_id}")
+        
+        # Display case-specific feedback statistics
+        case_feedback_stats = get_case_feedback_stats(case_id)
+        if case_feedback_stats["total"] > 0:
+            st.markdown("#### 📊 Case Feedback Statistics")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Feedback", case_feedback_stats["total"])
+            with col2:
+                st.metric("Upvotes", case_feedback_stats["upvotes"])
+            with col3:
+                st.metric("Downvotes", case_feedback_stats["downvotes"])
+            st.markdown("---")
         
         # Case Parameters
         col1, col2, col3 = st.columns(3)
